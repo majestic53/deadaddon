@@ -1,0 +1,5 @@
+## Interface: 70100
+## Title: "Dead"
+## Notes: "Dead" Effect Addon
+## Version: 0.1
+dead.lua
