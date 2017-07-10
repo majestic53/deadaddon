@@ -12,7 +12,14 @@ Table of Contents
 Changelog
 =========
 
-###Version 0.1
+Version 0.2
+-----------
+*Updated: 7/10/2017*
+
+* Added sound effect on player death
+
+Version 0.1
+-----------
 *Updated: 1/10/2017*
 
 * Initial commit

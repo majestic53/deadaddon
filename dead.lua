@@ -44,7 +44,8 @@ local DeadGfxFontInherits = "PVPInfoTextFont";   -- font type
 local DeadGfxFontLayer = "BACKGROUND";   -- frame layer
 local DeadGfxFontName = nil;   -- font name
 local DeadGfxHeight = 300;   -- frame height
-local DeadGfxMessage = "DEAD";   -- frame text
+local DeadGfxMessagePlayer = "YOU'RE DEAD";	-- frame text for player
+local DeadGfxMessageTarget = "DEAD";   -- frame text for target
 local DeadGfxRelativeTo = "CENTER";   -- frame position
 local DeadGfxRelativeX = 0;   -- frame x coordinate
 local DeadGfxRelativeY = 200;   -- frame y coordinate
@@ -53,8 +54,10 @@ local DeadGfxWidth = 300;   -- frame width
 
 local DeadSfxEventDelta = 0.5;   -- event delay (in seconds) 
 local DeadSfxEventMajor = "COMBAT_LOG_EVENT_UNFILTERED";   -- event type
-local DeadSfxEventMinor = "UNIT_DIED";   -- event subtype
-local DeadSfxPath = "Interface\\AddOns\\dead\\dead.mp3";   -- sound effect file path
+local DeadSfxEventMinorPlayer = "PLAYER_DEAD";   -- event subtype for player
+local DeadSfxEventMinorTarget = "UNIT_DIED";   -- event subtype for target
+local DeadSfxPathPlayer = "Interface\\AddOns\\dead\\player.mp3";   -- sound effect file path for player sound
+local DeadSfxPathTarget = "Interface\\AddOns\\dead\\target.mp3";   -- sound effect file path for target sound
 local DeadSfxTarget = "target";   -- target type
 local DeadSfxType = "SFX";   -- sound effect type
 
@@ -86,13 +89,13 @@ function TriggerDeadGfx(message)
 	DeadGfxFrame:Show();   -- show frame
 end
 
-function TriggerDeadSfx()
+function TriggerDeadSfx(message, path)
 
 	if(DeadGfxShowMessage == true) then   -- show message?
-		TriggerDeadGfx(DeadGfxMessage);   -- trigger frame
+		TriggerDeadGfx(message);   -- trigger frame
 	end
 
-	PlaySoundFile(DeadSfxPath, DeadSfxType);   -- play sound effect
+	PlaySoundFile(path, DeadSfxType);   -- play sound effect
 end
 
 --
@@ -107,7 +110,7 @@ function OnDeadGfx(self, elapsed)
 		if(fade ~= 0) then   -- frame opacity non-zero?
 			DeadGfxFrame:SetAlpha(fade - DeadGfxFadeDelta);   -- adjust frame opacity by fade timestep
 		end
-		
+
 		if(fade == 0) then   -- frame opacity is zero?
 			DeadGfxFrame:Hide();   -- hide frame
 		end
@@ -115,15 +118,28 @@ function OnDeadGfx(self, elapsed)
 end
 
 function OnDeadSfx(self, event, ...)
+	local path = nil;
+	local message = nil;
 	local EventType = select(2, ...);
-	
-	if(EventType == DeadSfxEventMinor) then   -- event type matches?
+
+	-- sound and text will trigger if the following conditions are met:
+	--	1. the player dies
+	--	2. the current target dies
+	if(EventType == DeadSfxEventMinorPlayer) then	-- event type matches player?
+		path = DeadSfxPathPlayer;	-- player death
+		message = DeadGfxMessagePlayer;
+	elseif(EventType == DeadSfxEventMinorTarget) then   -- event type matches target?
 		local TargetGuid = select(8, ...);
 		local TargetName = select(9, ...);
 
 		if(TargetGuid == UnitGUID(DeadSfxTarget)) then   -- event originated from target?
-			C_Timer.After(DeadSfxEventDelta, function() TriggerDeadSfx(); end);   -- trigger sound
+			path = DeadSfxPathTarget;	-- target death
+			message = DeadGfxMessageTarget;
 		end
+	end
+
+	if((path != nil) and (message != nil)) then	-- conditions met?
+		C_Timer.After(DeadSfxEventDelta, function() TriggerDeadSfx(message, path); end);   -- trigger sound
 	end
 end
 
