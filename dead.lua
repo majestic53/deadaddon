@@ -37,46 +37,48 @@
 -- Configuration
 --
 
-local DeadGfxFadeDelta = 0.05;   -- fade timestep (0 - 1)
-local DeadGfxFadeInit = 1;   -- initial frame opacity (0 - 1)
-local DeadGfxFadeTime = 1;   -- maximum fade time (in seconds)
-local DeadGfxFontInherits = "PVPInfoTextFont";   -- font type
-local DeadGfxFontLayer = "BACKGROUND";   -- frame layer
-local DeadGfxFontName = nil;   -- font name
-local DeadGfxHeight = 300;   -- frame height
-local DeadGfxMessagePlayer = "YOU'RE DEAD";	-- frame text for player
-local DeadGfxMessageTarget = "DEAD";   -- frame text for target
-local DeadGfxRelativeTo = "CENTER";   -- frame position
-local DeadGfxRelativeX = 0;   -- frame x coordinate
-local DeadGfxRelativeY = 200;   -- frame y coordinate
-local DeadGfxShowMessage = true;   -- display frame
-local DeadGfxWidth = 300;   -- frame width
+local DeadGfxFadeDelta = 0.05; -- fade timestep (0 - 1)
+local DeadGfxFadeInit = 1; -- initial frame opacity (0 - 1)
+local DeadGfxFadeTime = 1; -- maximum fade time (in seconds)
+local DeadGfxFontInherits = "PVPInfoTextFont"; -- font type
+local DeadGfxFontLayer = "BACKGROUND"; -- frame layer
+local DeadGfxFontName = nil; -- font name
+local DeadGfxHeight = 300; -- frame height
+local DeadGfxMessagePlayer = "YOU'RE DEAD"; -- frame text for player
+local DeadGfxMessageTarget = "DEAD"; -- frame text for target
+local DeadGfxRelativeTo = "CENTER"; -- frame position
+local DeadGfxRelativeX = 0; -- frame x coordinate
+local DeadGfxRelativeY = 200; -- frame y coordinate
+local DeadGfxShowMessage = true; -- display frame
+local DeadGfxWidth = 300; -- frame width
 
-local DeadSfxEventDelta = 0.5;   -- event delay (in seconds) 
-local DeadSfxEventMajor = "COMBAT_LOG_EVENT_UNFILTERED";   -- event type
-local DeadSfxEventMinorPlayer = "PLAYER_DEAD";   -- event subtype for player
-local DeadSfxEventMinorTarget = "UNIT_DIED";   -- event subtype for target
-local DeadSfxPathPlayer = "Interface\\AddOns\\dead\\player.mp3";   -- sound effect file path for player sound
-local DeadSfxPathTarget = "Interface\\AddOns\\dead\\target.mp3";   -- sound effect file path for target sound
-local DeadSfxTarget = "target";   -- target type
-local DeadSfxType = "SFX";   -- sound effect type
+local DeadPlayerSfxEventDelta = 0.0; -- event delay (in seconds)
+local DeadTargetSfxEventDelta = 0.0; -- event delay (in seconds)
+local DeadSfxEventMajorPlayer = "PLAYER_DEAD"; -- event type for player
+local DeadSfxEventMajorTarget = "COMBAT_LOG_EVENT_UNFILTERED"; -- event type for target
+local DeadSfxEventMinorTarget = "UNIT_DIED"; -- event subtype for target
+local DeadSfxPathPlayer = "Interface\\AddOns\\dead\\player.mp3"; -- sound effect file path for player sound
+local DeadSfxPathTarget = "Interface\\AddOns\\dead\\target.mp3"; -- sound effect file path for target sound
+local DeadSfxTarget = "target"; -- target type
+local DeadSfxType = "SFX"; -- sound effect type
 
 --
 -- Globals
 --
+local DeadGfxFrame = nil; -- graphics frame
+local DeadGfxFadeTimer = 0; -- fade timer
 
-local DeadGfxFrame = CreateFrame("Frame");   -- graphics frame
-local DeadGfxFadeTimer = 0;   -- fade timer
-
-local DeadSfxFrame = CreateFrame("Frame");   -- sound effect frame
+local DeadPlayerSfxFrame = CreateFrame("Frame"); -- player sound effect frame
+local DeadTargetSfxFrame = CreateFrame("Frame"); -- target sound effect frame
 
 --
 -- Helper Routines
 --
 
 function TriggerDeadGfx(message)
-	DeadGfxFadeTimer = GetTime();   -- initialize fade timer
-	DeadGfxFrame:ClearAllPoints();   -- initialize frame
+	DeadGfxFrame = CreateFrame("Frame");
+	DeadGfxFadeTimer = GetTime(); -- initialize fade timer
+	DeadGfxFrame:ClearAllPoints(); -- initialize frame
 	DeadGfxFrame:SetHeight(DeadGfxHeight);
 	DeadGfxFrame:SetWidth(DeadGfxWidth);
 	DeadGfxFrame:SetScript("OnUpdate", OnDeadGfx);
@@ -86,16 +88,16 @@ function TriggerDeadGfx(message)
 	DeadGfxFrame:SetPoint(DeadGfxRelativeTo, DeadGfxRelativeX, DeadGfxRelativeY);
 	DeadGfxFrame.text:SetText(message);
 	DeadGfxFrame:SetAlpha(DeadGfxFadeInit);
-	DeadGfxFrame:Show();   -- show frame
+	DeadGfxFrame:Show(); -- show frame
 end
 
 function TriggerDeadSfx(message, path)
 
-	if(DeadGfxShowMessage == true) then   -- show message?
-		TriggerDeadGfx(message);   -- trigger frame
+	if(DeadGfxShowMessage == true) then -- show message?
+		TriggerDeadGfx(message); -- trigger frame
 	end
 
-	PlaySoundFile(path, DeadSfxType);   -- play sound effect
+	PlaySoundFile(path, DeadSfxType); -- play sound effect
 end
 
 --
@@ -104,48 +106,40 @@ end
 
 function OnDeadGfx(self, elapsed)
 
-	if(DeadGfxFadeTimer < GetTime() - DeadGfxFadeTime) then   -- fade timeout not expired?
-		local fade = DeadGfxFrame:GetAlpha();
+	if(DeadGfxFadeTimer < GetTime() - DeadGfxFadeTime) then -- fade timeout not expired?
 
-		if(fade ~= 0) then   -- frame opacity non-zero?
-			DeadGfxFrame:SetAlpha(fade - DeadGfxFadeDelta);   -- adjust frame opacity by fade timestep
+		local fade = DeadGfxFrame:GetAlpha();
+		if(fade ~= 0) then -- frame opacity non-zero?
+			DeadGfxFrame:SetAlpha(fade - DeadGfxFadeDelta); -- adjust frame opacity by fade timestep
 		end
 
-		if(fade == 0) then   -- frame opacity is zero?
-			DeadGfxFrame:Hide();   -- hide frame
+		if(fade == 0) then -- frame opacity is zero?
+			DeadGfxFrame:Hide(); -- hide frame
 		end
 	end
 end
 
-function OnDeadSfx(self, event, ...)
-	local path = nil;
-	local message = nil;
+function OnDeadPlayerSfx(self, event, ...)
+	C_Timer.After(DeadPlayerSfxEventDelta, function() TriggerDeadSfx(DeadGfxMessagePlayer, DeadSfxPathPlayer); end); -- player death
+end
+
+function OnDeadTargetSfx(self, event, ...)
+
 	local EventType = select(2, ...);
+	if(EventType == DeadSfxEventMinorTarget) then -- event type matches target?
 
-	-- sound and text will trigger if the following conditions are met:
-	--	1. the player dies
-	--	2. the current target dies
-	if(EventType == DeadSfxEventMinorPlayer) then	-- event type matches player?
-		path = DeadSfxPathPlayer;	-- player death
-		message = DeadGfxMessagePlayer;
-	elseif(EventType == DeadSfxEventMinorTarget) then   -- event type matches target?
-		local TargetGuid = select(8, ...);
-		local TargetName = select(9, ...);
-
-		if(TargetGuid == UnitGUID(DeadSfxTarget)) then   -- event originated from target?
-			path = DeadSfxPathTarget;	-- target death
-			message = DeadGfxMessageTarget;
+		local TargetFlags = select(10, ...);
+		if(bit.band(TargetFlags, COMBATLOG_OBJECT_TARGET) > 0) then -- event flag marked as target?
+			C_Timer.After(DeadTargetSfxEventDelta, function() TriggerDeadSfx(DeadGfxMessageTarget, DeadSfxPathTarget); end); -- target death
 		end
-	end
-
-	if((path != nil) and (message != nil)) then	-- conditions met?
-		C_Timer.After(DeadSfxEventDelta, function() TriggerDeadSfx(message, path); end);   -- trigger sound
 	end
 end
 
 --
 -- Initialization
 --
+DeadPlayerSfxFrame:RegisterEvent(DeadSfxEventMajorPlayer);
+DeadPlayerSfxFrame:SetScript("OnEvent", OnDeadPlayerSfx);
 
-DeadSfxFrame:RegisterUnitEvent(DeadSfxEventMajor);
-DeadSfxFrame:SetScript("OnEvent", OnDeadSfx);
+DeadTargetSfxFrame:RegisterUnitEvent(DeadSfxEventMajorTarget);
+DeadTargetSfxFrame:SetScript("OnEvent", OnDeadTargetSfx);
